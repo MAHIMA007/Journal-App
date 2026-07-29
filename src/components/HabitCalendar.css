@@ -1,0 +1,384 @@
+.habit-calendar {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.habit-calendar-compact {
+  max-width: 430px;
+  padding: 1rem;
+  margin: 0 auto 1rem;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.calendar-header h2 {
+  font-size: 1.5rem;
+  color: #4a5568;
+  font-weight: 600;
+  min-width: 200px;
+  text-align: center;
+}
+
+.habit-calendar-compact .calendar-header h2 {
+  font-size: 1.1rem;
+  min-width: 130px;
+}
+
+.calendar-nav-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.habit-calendar-compact .calendar-nav-btn {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.95rem;
+}
+
+.calendar-nav-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.calendar-nav-btn:active {
+  transform: translateY(0);
+}
+
+.today-btn {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  border: 2px solid #667eea;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.habit-calendar-compact .today-btn {
+  font-size: 0.82rem;
+  padding: 0.35rem 0.9rem;
+}
+
+.today-btn:hover {
+  background: rgba(102, 126, 234, 0.15);
+  transform: scale(1.02);
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.weekday {
+  text-align: center;
+  font-weight: 600;
+  color: #718096;
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
+  text-transform: uppercase;
+}
+
+.habit-calendar-compact .calendar-weekdays,
+.habit-calendar-compact .calendar-grid {
+  gap: 0.3rem;
+}
+
+.habit-calendar-compact .weekday {
+  font-size: 0.68rem;
+  padding: 0.2rem 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  background: #f7fafc;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.calendar-day.empty {
+  background: transparent;
+  cursor: default;
+  border: none;
+}
+
+.calendar-day.day {
+  border: 2px solid #e2e8f0;
+}
+
+.calendar-day.day:hover {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+  transform: scale(1.05);
+}
+
+.calendar-day.heat-level-0,
+.legend-dot.heat-level-0 {
+  background: #f8fafc;
+}
+
+.calendar-day.heat-level-1,
+.legend-dot.heat-level-1 {
+  background: #dbeafe;
+  border-color: #bfdbfe;
+}
+
+.calendar-day.heat-level-2,
+.legend-dot.heat-level-2 {
+  background: #93c5fd;
+  border-color: #60a5fa;
+}
+
+.calendar-day.heat-level-3,
+.legend-dot.heat-level-3 {
+  background: #60a5fa;
+  border-color: #3b82f6;
+}
+
+.calendar-day.heat-level-4,
+.legend-dot.heat-level-4 {
+  background: #2563eb;
+  border-color: #1d4ed8;
+}
+
+.calendar-day.selected {
+  outline: 3px solid #1f2937;
+  outline-offset: 1px;
+}
+
+.calendar-day.period-logged {
+  box-shadow: inset 0 0 0 2px #db2777;
+}
+
+.calendar-day.period-predicted {
+  box-shadow: inset 0 0 0 2px rgba(219, 39, 119, 0.45);
+}
+
+.day-number {
+  font-size: 1rem;
+  color: #4a5568;
+  line-height: 1;
+}
+
+.habit-calendar-compact .day-number {
+  font-size: 0.75rem;
+}
+
+.entry-indicator {
+  font-size: 0.8rem;
+  color: #0f172a;
+  font-weight: 700;
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  line-height: 1;
+}
+
+.habit-calendar-compact .entry-indicator {
+  font-size: 0.62rem;
+}
+
+.calendar-day.heat-level-3 .day-number,
+.calendar-day.heat-level-4 .day-number,
+.calendar-day.heat-level-3 .entry-indicator,
+.calendar-day.heat-level-4 .entry-indicator {
+  color: #ffffff;
+}
+
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+.period-legend {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.7rem;
+}
+
+.period-chip {
+  border-radius: 999px;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+  font-weight: 600;
+}
+
+.period-chip-logged {
+  background: rgba(236, 72, 153, 0.18);
+  color: #9d174d;
+}
+
+.period-chip-predicted {
+  background: rgba(244, 114, 182, 0.12);
+  color: #9d174d;
+}
+
+.period-controls {
+  display: grid;
+  grid-template-columns: auto 72px auto 72px;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.period-controls label {
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.period-controls input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.3rem 0.45rem;
+  font-size: 0.82rem;
+  color: #111827;
+}
+
+#periodStartDate {
+  grid-column: span 3;
+}
+
+.period-set-btn {
+  grid-column: 1 / -1;
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+  cursor: pointer;
+}
+
+.period-set-btn:hover {
+  opacity: 0.93;
+}
+
+.legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  display: inline-block;
+}
+
+.calendar-stats {
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.entries-count,
+.tracked-days {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #4a5568;
+  font-weight: 600;
+}
+
+.entries-count {
+  color: #667eea;
+}
+
+.tracked-days {
+  color: #764ba2;
+}
+
+.habit-calendar-compact .calendar-stats {
+  padding: 0.7rem;
+}
+
+.habit-calendar-compact .entries-count,
+.habit-calendar-compact .tracked-days {
+  font-size: 0.78rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .habit-calendar {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .calendar-header h2 {
+    font-size: 1.2rem;
+    min-width: 150px;
+  }
+
+  .calendar-nav-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+  }
+
+  .calendar-weekdays,
+  .calendar-grid {
+    gap: 0.4rem;
+  }
+
+  .weekday {
+    font-size: 0.75rem;
+    padding: 0.3rem 0;
+  }
+
+  .day-number {
+    font-size: 0.85rem;
+  }
+
+  .entry-indicator {
+    font-size: 0.65rem;
+  }
+
+  .period-controls {
+    grid-template-columns: auto 1fr;
+  }
+
+  #periodStartDate {
+    grid-column: span 1;
+  }
+}

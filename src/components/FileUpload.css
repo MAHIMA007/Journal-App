@@ -1,0 +1,248 @@
+.file-upload-container {
+  margin-bottom: 2rem;
+}
+
+.file-upload-zone {
+  border: 3px dashed #667eea;
+  border-radius: 12px;
+  padding: 2.5rem;
+  text-align: center;
+  background: rgba(102, 126, 234, 0.05);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.file-upload-zone.active {
+  background: rgba(102, 126, 234, 0.15);
+  border-color: #764ba2;
+  transform: scale(1.02);
+}
+
+.file-upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.file-upload-icon {
+  font-size: 3rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.file-upload-zone h3 {
+  font-size: 1.25rem;
+  color: #4a5568;
+  font-weight: 600;
+  margin: 0;
+}
+
+.file-upload-zone p {
+  margin: 0.5rem 0 0 0;
+  color: #718096;
+  font-size: 0.95rem;
+}
+
+.file-upload-hint {
+  font-size: 0.85rem;
+  color: #a0aec0;
+  font-style: italic;
+}
+
+.file-upload-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  margin-top: 0.5rem;
+}
+
+.file-upload-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.file-upload-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.file-upload-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.draft-preview {
+  margin-top: 1rem;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1rem;
+}
+
+.draft-preview-header h4 {
+  margin: 0;
+  color: #4a5568;
+  font-size: 1.05rem;
+}
+
+.draft-preview-header p {
+  margin: 0.35rem 0 0;
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.draft-list {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.draft-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.8rem;
+  background: #fff;
+}
+
+.draft-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.draft-card label {
+  color: #4a5568;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.draft-input,
+.draft-textarea {
+  width: 100%;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  color: #2d3748;
+  font-size: 0.9rem;
+  margin-bottom: 0.55rem;
+}
+
+.draft-input:focus,
+.draft-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15);
+}
+
+.draft-textarea {
+  resize: vertical;
+  min-height: 130px;
+  margin-bottom: 0;
+}
+
+.draft-remove-btn {
+  border: none;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.draft-actions {
+  margin-top: 0.9rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.draft-cancel-btn,
+.draft-save-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.draft-cancel-btn {
+  background: #edf2f7;
+  color: #4a5568;
+}
+
+.draft-save-btn {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: #fff;
+}
+
+.draft-save-btn:disabled,
+.draft-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  color: #dc2626;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+
+.error-close:hover {
+  transform: scale(1.2);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .file-upload-zone {
+    padding: 1.5rem;
+  }
+
+  .file-upload-icon {
+    font-size: 2.5rem;
+  }
+
+  .file-upload-zone h3 {
+    font-size: 1.1rem;
+  }
+
+  .file-upload-zone p {
+    font-size: 0.9rem;
+  }
+
+  .draft-actions {
+    flex-direction: column;
+  }
+}

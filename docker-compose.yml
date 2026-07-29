@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: lifelog-db
+    environment:
+      POSTGRES_USER: lifelog
+      POSTGRES_PASSWORD: lifelog
+      POSTGRES_DB: lifelog
+    ports:
+      - "5001:5432"
+    volumes:
+      - lifelog_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifelog -d lifelog"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: node:20-alpine
+    container_name: lifelog-app
+    working_dir: /app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: lifelog
+      DB_PASSWORD: lifelog
+      DB_NAME: lifelog
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "5173:5173"
+      - "3001:3001"
+    volumes:
+      - ./:/app
+      - lifelog_root_node_modules:/app/node_modules
+      - lifelog_server_node_modules:/app/server/node_modules
+    command: >
+      sh -c "
+      if [ ! -d node_modules ] || [ -z \"$(ls -A node_modules 2>/dev/null)\" ]; then npm ci; fi &&
+      if [ ! -d server/node_modules ] || [ -z \"$(ls -A server/node_modules 2>/dev/null)\" ]; then cd server && npm ci && cd ..; fi &&
+      npm run dev:full
+      "
+
+volumes:
+  lifelog_pgdata:
+  lifelog_root_node_modules:
+  lifelog_server_node_modules:

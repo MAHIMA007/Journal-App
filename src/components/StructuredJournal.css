@@ -1,0 +1,240 @@
+.structured-journal {
+  max-width: 920px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.structured-journal-header h2 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  color: #111827;
+  margin-top: 0.5rem;
+}
+
+.structured-journal-header p {
+  margin-top: 0.75rem;
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+.structured-kicker {
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4c51bf;
+  font-weight: 700;
+}
+
+.structured-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.structured-form label {
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #374151;
+  font-weight: 700;
+}
+
+.structured-form input {
+  width: 100%;
+  display: block;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  color: #111827;
+}
+
+.structured-form input:focus {
+  outline: none;
+  border-color: #4c51bf;
+  box-shadow: 0 0 0 3px rgba(76, 81, 191, 0.14);
+}
+
+.focus-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.focus-chip {
+  border: 1px solid rgba(76, 81, 191, 0.25);
+  background: rgba(76, 81, 191, 0.08);
+  color: #3730a3;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.focus-chip:hover {
+  background: rgba(76, 81, 191, 0.16);
+}
+
+.structured-error {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  color: #b91c1c;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  max-width: 90%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.structured-success {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  color: #166534;
+  background: rgba(74, 222, 128, 0.14);
+  border: 1px solid rgba(22, 101, 52, 0.2);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  max-width: 90%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.structured-results {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.structured-results-header {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.structured-results h3 {
+  font-size: 1.3rem;
+  color: #111827;
+}
+
+.structured-results ol {
+  margin-left: 1.2rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.structured-results li {
+  line-height: 1.6;
+  color: #1f2937;
+}
+
+.structured-editor-section,
+.structured-upload-section {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1.5rem;
+}
+
+.structured-editor-header {
+  margin-bottom: 0.8rem;
+}
+
+.structured-editor-header h3 {
+  color: #111827;
+  font-size: 1.25rem;
+}
+
+.structured-editor-header p {
+  margin-top: 0.35rem;
+  color: #4b5563;
+}
+
+.structured-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.structured-editor-form label {
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #374151;
+  font-weight: 700;
+}
+
+.structured-editor-form input,
+.structured-editor-form textarea {
+  width: 100%;
+  display: block;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  color: #111827;
+  font-family: inherit;
+}
+
+.structured-editor-form textarea {
+  resize: vertical;
+  min-height: 220px;
+}
+
+.structured-question-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.structured-question-card {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0.9rem;
+}
+
+.structured-question-card label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.95rem;
+  color: #111827;
+}
+
+.structured-question-card textarea {
+  width: 100%;
+  display: block;
+  min-height: 110px;
+  margin-top: 0.45rem;
+}
+
+#structuredNotes {
+  min-height: 140px;
+}
+
+.structured-editor-form input:focus,
+.structured-editor-form textarea:focus {
+  outline: none;
+  border-color: #4c51bf;
+  box-shadow: 0 0 0 3px rgba(76, 81, 191, 0.14);
+}
+
+@media (max-width: 768px) {
+  .structured-journal {
+    padding: 1.3rem;
+  }
+}
