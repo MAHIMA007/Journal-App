@@ -5,11 +5,59 @@ import EntryForm from './components/EntryForm'
 import SearchBar from './components/SearchBar'
 import EntryList from './components/EntryList'
 import HabitCalendar from './components/HabitCalendar'
+import HabitTracker from './components/HabitTracker'
 import FileUpload from './components/FileUpload'
 import AudioRecorder from './components/AudioRecorder'
 import StructuredJournal from './components/StructuredJournal'
 import ReflectionsPanel from './components/ReflectionsPanel'
+import Login from './components/Login'
+import Sidebar from './components/Sidebar'
+import Settings from './components/Settings'
+import TodoList from './components/TodoList'
+import AIChatPanel from './components/AIChatPanel'
+import DailyPulse from './components/DailyPulse'
 import apiService from './services/apiService'
+import { getCurrentUser, logoutUser } from './utils/auth'
+import { toDateString } from './utils/dateUtils'
+
+const BACKGROUND_KEY = 'memoir_background'
+
+const AFFIRMATIONS = [
+  'beautiful',
+  'strong',
+  'capable',
+  'worthy',
+  'resilient',
+  'radiant',
+  'thoughtful',
+  'mindful',
+  'powerful',
+  'creative',
+  'brave',
+  'authentic',
+  'luminous',
+  'graceful',
+  'inspired',
+]
+
+function getRandomAffirmation() {
+  const today = new Date().toDateString()
+  const stored = localStorage.getItem('memoir_affirmation_date')
+  const storedAffirmation = localStorage.getItem('memoir_daily_affirmation')
+  
+  if (stored === today && storedAffirmation) {
+    return storedAffirmation
+  }
+  
+  const affirmation = AFFIRMATIONS[Math.floor(Math.random() * AFFIRMATIONS.length)]
+  localStorage.setItem('memoir_affirmation_date', today)
+  localStorage.setItem('memoir_daily_affirmation', affirmation)
+  return affirmation
+}
+
+function getGreeting() {
+  return 'Welcome back'
+}
 
 function parsePath(pathname) {
   if (pathname === '/' || pathname === '') {
@@ -38,6 +86,14 @@ function parsePath(pathname) {
 
   if (pathname === '/journal/structured/entries') {
     return { section: 'journal', journalView: 'structured', view: 'all-entries' }
+  }
+
+  if (pathname === '/settings') {
+    return { section: 'settings' }
+  }
+
+  if (pathname === '/ai') {
+    return { section: 'ai' }
   }
 
   const entryMatch = pathname.match(/^\/journal\/dump\/entry\/([^/]+)$/)
@@ -77,12 +133,15 @@ function isStructuredEntry(entry) {
 }
 
 function App() {
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser())
+  const [background, setBackground] = useState(() => localStorage.getItem(BACKGROUND_KEY))
   const [entries, setEntries] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedDate, setSelectedDate] = useState(null)
   const [selectedEntry, setSelectedEntry] = useState(null)
   const [isCreating, setIsCreating] = useState(false)
   const [currentSection, setCurrentSection] = useState(() => parsePath(window.location.pathname).section)
+  const [affirmation, setAffirmation] = useState(() => AFFIRMATIONS[new Date().getDate() % AFFIRMATIONS.length])
   const [currentJournalView, setCurrentJournalView] = useState(() => parsePath(window.location.pathname).journalView || 'chooser')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -91,6 +150,38 @@ function App() {
   useEffect(() => {
     loadEntries()
   }, [])
+
+  useEffect(() => {
+    if (background) {
+      document.body.style.backgroundImage = `url(${background})`
+      document.body.style.backgroundSize = 'cover'
+      document.body.style.backgroundPosition = 'center'
+      document.body.style.backgroundAttachment = 'fixed'
+    } else {
+      document.body.style.backgroundImage = ''
+      document.body.style.backgroundSize = ''
+      document.body.style.backgroundPosition = ''
+      document.body.style.backgroundAttachment = ''
+    }
+  }, [background])
+
+  const handleLogin = (username) => {
+    setCurrentUser(username)
+  }
+
+  const handleLogout = () => {
+    logoutUser()
+    setCurrentUser(null)
+  }
+
+  const handleBackgroundChange = (dataUrl) => {
+    setBackground(dataUrl)
+    if (dataUrl) {
+      localStorage.setItem(BACKGROUND_KEY, dataUrl)
+    } else {
+      localStorage.removeItem(BACKGROUND_KEY)
+    }
+  }
 
   useEffect(() => {
     const applyRoute = (route) => {
@@ -208,7 +299,7 @@ function App() {
       console.error('Failed to load entries:', error)
       setError('Failed to load entries. Please make sure the server is running.')
       // Fallback to localStorage if API fails
-      const savedEntries = localStorage.getItem('lifelogEntries')
+      const savedEntries = localStorage.getItem('memoirEntries')
       if (savedEntries) {
         setEntries(JSON.parse(savedEntries))
       }
@@ -266,8 +357,8 @@ function App() {
 
     // Filter by selected date
     if (selectedDate) {
-      const entryDate = new Date(entry.createdAt).toISOString().split('T')[0]
-      const selectedDateStr = selectedDate.toISOString().split('T')[0]
+      const entryDate = toDateString(new Date(entry.createdAt))
+      const selectedDateStr = toDateString(selectedDate)
       return matchesSearch && entryDate === selectedDateStr
     }
 
@@ -276,8 +367,8 @@ function App() {
 
   const handleDateClick = (date) => {
     setSelectedDate(prevDate => {
-      const newDate = date.toISOString().split('T')[0]
-      const prevDateStr = prevDate ? prevDate.toISOString().split('T')[0] : null
+      const newDate = toDateString(date)
+      const prevDateStr = prevDate ? toDateString(prevDate) : null
       return newDate === prevDateStr ? null : date
     })
   }
@@ -370,34 +461,60 @@ function App() {
     }
   }
 
+  const handleReflectionAnswerSave = async (answerEntry) => {
+    try {
+      const newEntry = await apiService.createEntry(answerEntry)
+      setEntries([newEntry, ...entries])
+      setError(null)
+      return newEntry
+    } catch (saveError) {
+      console.error('Failed to save reflection answer:', saveError)
+      setError('Failed to save reflection answer. Please try again.')
+      throw saveError
+    }
+  }
+
   const handleStructuredUpload = (uploadedEntries) => {
     setEntries([...uploadedEntries, ...entries])
     setError(null)
   }
 
+  if (!currentUser) {
+    return <Login onLogin={handleLogin} />
+  }
+
   if (loading) {
     return (
-      <div className="app">
-        <header className="app-header">
-          <h1>📖 LifeLog</h1>
-          <p>Your personal digital journal</p>
-        </header>
-        <main className="app-main">
-          <div className="loading-state">
-            <div className="loading-spinner">⏳</div>
-            <h3>Loading your entries...</h3>
-            <p>Please wait while we fetch your journal entries.</p>
-          </div>
-        </main>
+      <div className="app-shell">
+        <Sidebar currentSection={currentSection} username={currentUser} onNavigate={navigateTo} onLogout={handleLogout} />
+        <div className="app">
+          <header className="app-header">
+            <h1>📖 Memoir</h1>
+            <p>Your personal digital journal</p>
+          </header>
+          <main className="app-main">
+            <div className="loading-state">
+              <div className="loading-spinner">⏳</div>
+              <h3>Loading your entries...</h3>
+              <p>Please wait while we fetch your journal entries.</p>
+            </div>
+          </main>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="app">
+    <div className="app-shell">
+      <Sidebar currentSection={currentSection} username={currentUser} onNavigate={navigateTo} onLogout={handleLogout} />
+      <div className="app">
       <header className="app-header">
-        <h1>📖 LifeLog</h1>
-        <p>{currentSection === 'home' ? 'Choose your workspace' : 'Your personal digital journal'}</p>
+        <h1>📖 Memoir</h1>
+        <p>
+          {currentSection === 'home'
+            ? `${getGreeting()} ${currentUser}, you are ${getRandomAffirmation()}`
+            : 'Your personal digital journal'}
+        </p>
         {currentSection === 'journal' && (
           <div className="section-switch-group">
             <button className="section-switch-btn" onClick={goToLanding}>
@@ -419,65 +536,66 @@ function App() {
       </header>
 
       <main className="app-main">
-        {currentSection === 'home' ? (
-          <section className="section-selector">
-            <div className="section-selector-copy">
-              <span className="section-selector-kicker">Workspace Select</span>
-              <h2>Choose where you want to work today</h2>
-              <p>
-                Journal opens the full LifeLog experience with uploads, voice dictation,
-                search, calendar tracking, and entry management. Habit Tracking is reserved
-                for a dedicated view later.
-              </p>
+        {currentSection === 'settings' ? (
+          <Settings background={background} onBackgroundChange={handleBackgroundChange} />
+        ) : currentSection === 'ai' ? (
+          <section className="ai-chat-section">
+            <AIChatPanel username={currentUser} />
+          </section>
+        ) : currentSection === 'home' ? (
+          <section className="wireframe-dashboard">
+            <DailyPulse
+              username={currentUser}
+              hasEntryToday={entries.some((entry) => new Date(entry.createdAt).toDateString() === new Date().toDateString())}
+              onQuickCapture={openCreateEntry}
+              onSaveAnswer={handleReflectionAnswerSave}
+            />
+
+            <div className="wireframe-affirmation">
+              <span>Positive affirmation</span>
+              <p>{affirmation}</p>
+              <button
+                type="button"
+                className="affirmation-shuffle"
+                onClick={() => setAffirmation((current) => {
+                  const choices = AFFIRMATIONS.filter((item) => item !== current)
+                  return choices[Math.floor(Math.random() * choices.length)]
+                })}
+                aria-label="Shuffle positive affirmation"
+                title="Shuffle affirmation"
+              >
+                ⤨
+              </button>
             </div>
 
-            <div className="section-grid">
-              <article className="section-card section-card-muted">
-                <span className="section-card-icon">✓</span>
-                <div className="section-card-body">
-                  <p className="section-card-label">Coming Later</p>
-                  <h3>Habit Tracking</h3>
-                  <p>
-                    Placeholder slot for the future habit-focused dashboard.
-                  </p>
-                </div>
-                <button className="section-card-button section-card-button-disabled" disabled>
-                  Link pending
-                </button>
+            <div className="wireframe-band wireframe-band-tools">
+              <article className="wireframe-zone wireframe-zone-todo">
+                <span className="wireframe-label">To-do list</span>
+                <p>Refreshed every day, with unfinished tasks carried forward automatically.</p>
+                <TodoList />
               </article>
-
-              <article className="section-card section-card-active">
-                <span className="section-card-icon">📓</span>
-                <div className="section-card-body">
-                  <p className="section-card-label">Available Now</p>
-                  <h3>Journal</h3>
-                  <p>
-                    Open the full LifeLog journal with file import, voice dictation, search,
-                    calendar review, and entry editing.
-                  </p>
-                </div>
-                <button className="section-card-button" onClick={openJournalHome}>
-                  Open Journal
-                </button>
-              </article>
-
-              <article className="section-card section-card-calendar">
-                <div className="section-card-body">
-                  <p className="section-card-label">Period & Habit Tracker</p>
-                  <h3>Calendar</h3>
-                  <p>
-                    Track journaling activity and period dates together.
-                  </p>
-                </div>
+              <article className="wireframe-zone wireframe-zone-calendar">
+                <span className="wireframe-label">Calendar</span>
+                <p>Period tracking and daily patterns.</p>
                 <div className="home-calendar-wrap">
-                  <HabitCalendar
-                    entries={entries}
-                    compact
-                    showPeriodTracker
-                  />
+                  <HabitCalendar entries={entries} compact showPeriodTracker />
                 </div>
               </article>
             </div>
+
+            <div className="wireframe-band wireframe-band-progress">
+              <article className="wireframe-zone wireframe-zone-habits">
+                <span className="wireframe-label">Habit tracker</span>
+                <p>Set a few goals, check in daily, and watch your progress build.</p>
+                <HabitTracker onSaveAnswer={handleReflectionAnswerSave} />
+              </article>
+              <article className="wireframe-zone wireframe-zone-upload">
+                <span className="wireframe-label">Upload progress</span>
+                <p>Upload a picture every day to track progress.</p>
+                <FileUpload onUpload={handleFileUpload} />
+              </article>
+            </div>
+
           </section>
         ) : currentJournalView === 'chooser' ? (
           <section className="journal-dashboard">
@@ -578,7 +696,7 @@ function App() {
               </article>
             </div>
 
-            <ReflectionsPanel />
+            <ReflectionsPanel onSaveAnswer={handleReflectionAnswerSave} />
           </section>
         ) : currentJournalView === 'structured' ? (
           <StructuredJournal
@@ -637,7 +755,7 @@ function App() {
                     ← Journal Dashboard
                   </button>
                 </div>
-                <ReflectionsPanel />
+                <ReflectionsPanel onSaveAnswer={handleReflectionAnswerSave} />
                 <FileUpload onUpload={handleFileUpload} />
                 <AudioRecorder onTranscriptionComplete={handleAudioTranscription} />
                 <div className="app-controls">
@@ -672,6 +790,7 @@ function App() {
           </>
         )}
       </main>
+      </div>
     </div>
   )
 }

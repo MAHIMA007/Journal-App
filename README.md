@@ -1,4 +1,4 @@
-# 📖 LifeLog - Online Journal System
+# 📖 Memoir - Online Journal System
 
 A beautiful, modern React-based journal application for capturing your thoughts, memories, and daily experiences.
 
@@ -25,8 +25,8 @@ A beautiful, modern React-based journal application for capturing your thoughts,
 ### Run With Docker (Recommended)
 
 Run the full stack with two containers:
-- `lifelog-app` on port `3001` (frontend + API)
-- `lifelog-db` on port `5001` (PostgreSQL)
+- `memoir-app` on port `3001` (frontend + API)
+- `memoir-db` on port `5001` (PostgreSQL)
 
 ```bash
 docker compose up --build
@@ -93,7 +93,7 @@ Database connection for local tools:
 
 ## 📱 Responsive Design
 
-LifeLog is fully responsive and works on:
+Memoir is fully responsive and works on:
 - Desktop computers
 - Tablets
 - Mobile phones
@@ -117,7 +117,7 @@ Your journal entries are stored in PostgreSQL, providing:
 - **Portability**: Access your entries from any device connected to the server
 - **Data Integrity**: Server-side validation ensures data consistency
 
-When running with Docker, the database is persisted in the Docker volume `lifelog_pgdata`.
+When running with Docker, the database is persisted in the Docker volume `memoir_pgdata`.
 
 ## 📄 Available Scripts
 

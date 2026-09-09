@@ -1,0 +1,92 @@
+.spellcheck-container {
+  position: relative;
+  width: 100%;
+}
+
+.spellcheck-backdrop,
+.spellcheck-textarea {
+  width: 100%;
+  min-height: 200px;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  box-sizing: border-box;
+}
+
+.spellcheck-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  pointer-events: none;
+  color: #1a202c;
+  border-color: #e2e8f0;
+  scrollbar-width: none;
+}
+
+.spellcheck-backdrop::-webkit-scrollbar {
+  display: none;
+}
+
+.spellcheck-textarea {
+  position: relative;
+  background: transparent;
+  color: transparent;
+  caret-color: #1a202c;
+  resize: vertical;
+  border-color: #e2e8f0;
+}
+
+.spellcheck-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.spellcheck-error {
+  background: transparent;
+  color: inherit;
+  text-decoration: underline wavy #e53e3e;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.spellcheck-popup {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 0.35rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.spellcheck-popup button {
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: #2d3748;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.spellcheck-popup button:hover {
+  background: #f0f4ff;
+  color: #4338ca;
+}
+
+.spellcheck-popup-empty {
+  padding: 0.4rem 0.6rem;
+  color: #a0aec0;
+  font-size: 0.85rem;
+}

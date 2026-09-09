@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import apiService from '../services/apiService'
+import { toDateString } from '../utils/dateUtils'
 import './ReflectionsPanel.css'
 
 function toDateInputValue(date) {
-  return date.toISOString().split('T')[0]
+  return toDateString(date)
 }
 
 function getDefaultRange() {
@@ -17,7 +18,7 @@ function getDefaultRange() {
   }
 }
 
-function ReflectionsPanel() {
+function ReflectionsPanel({ onSaveAnswer }) {
   const defaults = useMemo(() => getDefaultRange(), [])
   const [fromDate, setFromDate] = useState(defaults.fromDate)
   const [toDate, setToDate] = useState(defaults.toDate)
@@ -26,6 +27,7 @@ function ReflectionsPanel() {
   const [entryCount, setEntryCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [answers, setAnswers] = useState({})
 
   const loadReflections = async (event) => {
     if (event) {
@@ -44,10 +46,12 @@ function ReflectionsPanel() {
 
       setQuestions(Array.isArray(result?.questions) ? result.questions : [])
       setEntryCount(Number(result?.entryCount || 0))
+      setAnswers({})
     } catch (loadError) {
       setError(loadError.message || 'Failed to load reflections.')
       setQuestions([])
       setEntryCount(0)
+      setAnswers({})
     } finally {
       setIsLoading(false)
     }
@@ -58,6 +62,51 @@ function ReflectionsPanel() {
     // Intentionally run on mount to refresh daily reflections.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const toggleAnswer = (index) => {
+    setAnswers((prev) => {
+      const existing = prev[index]
+      if (existing?.open) {
+        return { ...prev, [index]: { ...existing, open: false } }
+      }
+      return {
+        ...prev,
+        [index]: { text: '', saving: false, saved: false, error: '', ...existing, open: true },
+      }
+    })
+  }
+
+  const updateAnswerText = (index, text) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [index]: { ...prev[index], text, saved: false },
+    }))
+  }
+
+  const saveAnswer = async (index, question) => {
+    const answer = answers[index]?.text?.trim()
+    if (!answer || !onSaveAnswer) return
+
+    setAnswers((prev) => ({ ...prev, [index]: { ...prev[index], saving: true, error: '' } }))
+
+    try {
+      await onSaveAnswer({
+        title: question,
+        content: answer,
+        tags: ['reflection'],
+      })
+      setAnswers((prev) => ({
+        ...prev,
+        [index]: { ...prev[index], saving: false, saved: true, open: false },
+      }))
+    } catch (saveError) {
+      setAnswers((prev) => ({
+        ...prev,
+        [index]: { ...prev[index], saving: false, error: saveError.message || 'Failed to save entry.' },
+      }))
+    }
+  }
+
 
   return (
     <section className="reflections-panel">
@@ -121,9 +170,49 @@ function ReflectionsPanel() {
 
           {questions.length > 0 ? (
             <ol className="reflections-question-list">
-              {questions.map((question, index) => (
-                <li key={`${question}-${index}`}>{question}</li>
-              ))}
+              {questions.map((question, index) => {
+                const answerState = answers[index] || {}
+                return (
+                  <li key={`${question}-${index}`}>
+                    <div className="reflections-question-row">
+                      <span>{question}</span>
+                      {onSaveAnswer && (
+                        <button
+                          type="button"
+                          className="reflections-answer-toggle"
+                          onClick={() => toggleAnswer(index)}
+                        >
+                          {answerState.saved ? '✓ Saved' : answerState.open ? 'Cancel' : 'Answer'}
+                        </button>
+                      )}
+                    </div>
+
+                    {answerState.open && (
+                      <div className="reflections-answer-box">
+                        <textarea
+                          value={answerState.text || ''}
+                          onChange={(event) => updateAnswerText(index, event.target.value)}
+                          placeholder="Write your answer..."
+                          rows="3"
+                        />
+                        {answerState.error && (
+                          <p className="reflections-answer-error">{answerState.error}</p>
+                        )}
+                        <div className="reflections-answer-actions">
+                          <button
+                            type="button"
+                            className="section-card-button"
+                            disabled={answerState.saving || !answerState.text?.trim()}
+                            onClick={() => saveAnswer(index, question)}
+                          >
+                            {answerState.saving ? 'Saving...' : 'Save as Entry'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
             </ol>
           ) : (
             <p className="reflections-empty">No questions generated yet. Try adjusting your date range.</p>

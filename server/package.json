@@ -1,7 +1,7 @@
 {
-  "name": "lifelog-server",
+  "name": "memoir-server",
   "version": "1.0.0",
-  "description": "Backend API for LifeLog journal application",
+  "description": "Backend API for Memoir journal application",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

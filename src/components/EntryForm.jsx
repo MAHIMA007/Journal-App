@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import SpellCheckTextarea from './SpellCheckTextarea'
 import './EntryForm.css'
 
 function EntryForm({ entry, onSave, onCancel }) {
@@ -8,10 +9,10 @@ function EntryForm({ entry, onSave, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!title.trim() || !content.trim()) return
+    if (!content.trim()) return
 
     const entryData = {
-      title: title.trim(),
+      title: title.trim() || 'Untitled Entry',
       content: content.trim(),
       tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag)
     }
@@ -34,8 +35,7 @@ function EntryForm({ entry, onSave, onCancel }) {
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="What's on your mind?"
-            required
+            placeholder="What's on your mind? (optional)"
           />
         </div>
 
@@ -52,10 +52,10 @@ function EntryForm({ entry, onSave, onCancel }) {
 
         <div className="form-group">
           <label htmlFor="content">Content</label>
-          <textarea
+          <SpellCheckTextarea
             id="content"
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={setContent}
             placeholder="Write your thoughts here..."
             rows="12"
             required

@@ -8,6 +8,59 @@ const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const Tesseract = require('tesseract.js');
 const mammoth = require('mammoth');
+const crypto = require('crypto');
+const http = require('http');
+const https = require('https');
+const net = require('net');
+const { URL } = require('url');
+
+function httpRequest(method, urlString, data = null, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(urlString);
+    const body = data === null ? null : JSON.stringify(data);
+    const client = url.protocol === 'https:' ? https : http;
+    const request = client.request({
+      method,
+      hostname: url.hostname,
+      port: url.port || undefined,
+      path: `${url.pathname}${url.search}`,
+      headers: body ? {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      } : undefined,
+      timeout
+    }, (response) => {
+      let responseBody = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => {
+        responseBody += chunk;
+      });
+      response.on('end', () => {
+        let parsedBody = responseBody;
+        try {
+          parsedBody = responseBody ? JSON.parse(responseBody) : null;
+        } catch {
+          // Some endpoints can return plain text.
+        }
+
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          reject(new Error(`Request failed with status ${response.statusCode}`));
+          return;
+        }
+
+        resolve({ status: response.statusCode, data: parsedBody, headers: response.headers });
+      });
+    });
+
+    request.on('error', reject);
+    request.on('timeout', () => request.destroy(new Error('Request timed out')));
+
+    if (body) {
+      request.write(body);
+    }
+    request.end();
+  });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -18,10 +71,54 @@ const DIST_DIR = path.join(__dirname, '..', 'dist');
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: Number(process.env.DB_PORT || 5432),
-  user: process.env.DB_USER || 'lifelog',
-  password: process.env.DB_PASSWORD || 'lifelog',
-  database: process.env.DB_NAME || 'lifelog'
+  user: process.env.DB_USER || 'memoir',
+  password: process.env.DB_PASSWORD || 'memoir',
+  database: process.env.DB_NAME || 'memoir'
 });
+
+const responseCache = new Map();
+const redisConfig = { host: process.env.REDIS_HOST || 'localhost', port: Number(process.env.REDIS_PORT || 6379) };
+
+function redisCommand(command, args = []) {
+  const values = [command, ...args.map(String)];
+  const payload = `*${values.length}\r\n${values.map((value) => `$${Buffer.byteLength(value)}\r\n${value}\r\n`).join('')}`;
+  return new Promise((resolve, reject) => {
+    const socket = net.createConnection(redisConfig);
+    let response = '';
+    socket.setTimeout(500);
+    socket.on('connect', () => socket.write(payload));
+    socket.on('data', (chunk) => {
+      response += chunk.toString();
+      if (!response.endsWith('\r\n')) return;
+      socket.end();
+      if (response.startsWith('$-1')) return resolve(null);
+      if (response.startsWith('-')) return reject(new Error(response.slice(1).trim()));
+      if (response.startsWith('$')) return resolve(response.slice(response.indexOf('\r\n') + 2, -2));
+      resolve(response.slice(1, -2));
+    });
+    socket.on('timeout', () => socket.destroy(new Error('Redis timeout')));
+    socket.on('error', reject);
+  });
+}
+
+async function getCachedJson(key) {
+  try {
+    const value = await redisCommand('GET', [key]);
+    return value ? JSON.parse(value) : null;
+  } catch {
+    const cached = responseCache.get(key);
+    return cached && cached.expiresAt > Date.now() ? cached.value : null;
+  }
+}
+
+async function setCachedJson(key, value, ttlSeconds = 900) {
+  responseCache.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+  try {
+    await redisCommand('SET', [key, JSON.stringify(value), 'EX', ttlSeconds]);
+  } catch {
+    // The in-memory cache remains available if Redis is temporarily unavailable.
+  }
+}
 
 app.use(cors());
 app.use(express.json());
@@ -85,6 +182,45 @@ async function initializeDatabase() {
       ON next_session_prompts (user_id, created_at DESC)
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS mood_records (
+        id TEXT PRIMARY KEY,
+        entry_id TEXT NOT NULL REFERENCES entries(id) ON DELETE CASCADE UNIQUE,
+        mood TEXT NOT NULL,
+        score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 5),
+        emotions JSONB NOT NULL DEFAULT '[]'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS daily_summaries (
+        summary_date DATE PRIMARY KEY,
+        summary TEXT NOT NULL,
+        entry_count INTEGER NOT NULL,
+        generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        username TEXT PRIMARY KEY,
+        password_hash TEXT NOT NULL,
+        password_salt TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_data (
+        username TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        data_key TEXT NOT NULL,
+        data_value JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (username, data_key)
+      )
+    `);
+
     const countResult = await pool.query('SELECT COUNT(*)::int AS count FROM entries');
     const row = countResult.rows[0];
     const hasLegacyFile = await fs.pathExists(LEGACY_JSON_DB_FILE);
@@ -131,8 +267,7 @@ function mapEntryRow(row) {
     id: row.id,
     title: row.title,
     content: row.content,
-    tags: Array.isArray(row.tags) ? row.tags : [],
-    createdAt: row.created_at,
+    tags: Array.isArray(row.tags) ? row.tags : [],    createdAt: row.created_at,
     updatedAt: row.updated_at
   };
 }
@@ -522,12 +657,13 @@ function generateStructuredPrompts(focusArea) {
     focusArea: focusArea.trim(),
     prompts,
     generatedAt: new Date().toISOString(),
-    source: 'lifelog-structured-prompt-engine'
+    source: 'memoir-structured-prompt-engine'
   };
 }
 
-const OLLAMA_URL = 'http://localhost:11434/api/chat';
-const OLLAMA_MODEL = 'llama3.1:8b';
+const OLLAMA_API_URL = (process.env.OLLAMA_URL || 'http://localhost:11434/api').replace(/\/$/, '');
+const OLLAMA_URL = `${OLLAMA_API_URL}/chat`;
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'mistral';
 
 const DEFAULT_FALLBACK_PROMPTS = [
   'What is one thing from your last entry that you want to revisit or expand on?',
@@ -944,12 +1080,133 @@ Generate 2-3 specific, concrete reflective questions for the user's next journal
   return prompts;
 }
 
+const USERNAME_PATTERN = /^[a-zA-Z0-9_-]{3,30}$/;
+const ALLOWED_USER_DATA_KEYS = new Set(['todos', 'habits', 'careItems', 'careTracker', 'profile', 'periodTracker']);
+
+function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return { hash, salt };
+}
+
+function verifyPassword(password, salt, expectedHash) {
+  const { hash } = hashPassword(password, salt);
+  const hashBuffer = Buffer.from(hash, 'hex');
+  const expectedBuffer = Buffer.from(expectedHash, 'hex');
+  return hashBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(hashBuffer, expectedBuffer);
+}
+
+app.post('/api/auth/register', async (req, res) => {
+  const { username, password } = req.body || {};
+  if (typeof username !== 'string' || !USERNAME_PATTERN.test(username)) {
+    return res.status(400).json({ error: 'Username must be 3-30 characters (letters, numbers, - or _).' });
+  }
+  if (typeof password !== 'string' || password.length < 4) {
+    return res.status(400).json({ error: 'Password must be at least 4 characters.' });
+  }
+
+  try {
+    const { hash, salt } = hashPassword(password);
+    await pool.query(
+      'INSERT INTO users (username, password_hash, password_salt) VALUES ($1, $2, $3)',
+      [username, hash, salt]
+    );
+    res.status(201).json({ username });
+  } catch (error) {
+    if (error.code === '23505') {
+      return res.status(409).json({ error: 'That username is already taken.' });
+    }
+    console.error('Error registering user:', error);
+    res.status(500).json({ error: 'Failed to create account.' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body || {};
+  if (typeof username !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ error: 'Username and password are required.' });
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT password_hash, password_salt FROM users WHERE username = $1',
+      [username]
+    );
+    const user = result.rows[0];
+    if (!user || !verifyPassword(password, user.password_salt, user.password_hash)) {
+      return res.status(401).json({ error: 'Incorrect username or password.' });
+    }
+    res.json({ username });
+  } catch (error) {
+    console.error('Error logging in:', error);
+    res.status(500).json({ error: 'Failed to log in.' });
+  }
+});
+
+app.get('/api/user-data/:username/:key', async (req, res) => {
+  const { username, key } = req.params;
+  if (!USERNAME_PATTERN.test(username) || !ALLOWED_USER_DATA_KEYS.has(key)) {
+    return res.status(400).json({ error: 'Invalid username or data key.' });
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT data_value FROM user_data WHERE username = $1 AND data_key = $2',
+      [username, key]
+    );
+    res.json({ value: result.rows[0] ? result.rows[0].data_value : null });
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    res.status(500).json({ error: 'Failed to fetch data.' });
+  }
+});
+
+app.put('/api/user-data/:username/:key', async (req, res) => {
+  const { username, key } = req.params;
+  if (!USERNAME_PATTERN.test(username) || !ALLOWED_USER_DATA_KEYS.has(key)) {
+    return res.status(400).json({ error: 'Invalid username or data key.' });
+  }
+  if (!('value' in (req.body || {}))) {
+    return res.status(400).json({ error: 'Missing value in request body.' });
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO user_data (username, data_key, data_value, updated_at)
+       VALUES ($1, $2, $3::jsonb, NOW())
+       ON CONFLICT (username, data_key) DO UPDATE SET data_value = $3::jsonb, updated_at = NOW()`,
+      [username, key, JSON.stringify(req.body.value)]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    if (error.code === '23503') {
+      return res.status(404).json({ error: 'Unknown user.' });
+    }
+    console.error('Error saving user data:', error);
+    res.status(500).json({ error: 'Failed to save data.' });
+  }
+});
+
 app.get('/api/entries', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM entries ORDER BY created_at DESC');
     res.json(result.rows.map(mapEntryRow));
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch entries' });
+  }
+});
+
+app.get('/api/entries/on-this-day', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM entries
+       WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+         AND EXTRACT(DAY FROM created_at) = EXTRACT(DAY FROM CURRENT_DATE)
+         AND EXTRACT(YEAR FROM created_at) < EXTRACT(YEAR FROM CURRENT_DATE)
+       ORDER BY created_at DESC`
+    );
+    res.json(result.rows.map(mapEntryRow));
+  } catch {
+    res.status(500).json({ error: 'Failed to load on-this-day entries' });
   }
 });
 
@@ -998,6 +1255,8 @@ app.post('/api/entries', async (req, res) => {
         newEntry.updatedAt
       ]
     );
+
+    indexEntryForSearch(newEntry);
 
     // Fire-and-forget: generate prompts for the user's next session in background
     const resolvedUserId = typeof userId === 'string' && userId.trim() ? userId.trim() : 'default';
@@ -1286,8 +1545,526 @@ app.get('/api/prompts/next/:userId', async (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'LifeLog API is running with PostgreSQL' });
+  res.json({ status: 'OK', message: 'Memoir API is running with PostgreSQL' });
 });
+
+// ===== AI/RAG ENDPOINTS =====
+
+function normalizeEntries(entries) {
+  return entries.map((entry) => ({ id: entry.id, title: entry.title, content: entry.content, createdAt: entry.createdAt || entry.created_at }));
+}
+
+async function getRecentEntries(limit = 20) {
+  const result = await pool.query('SELECT * FROM entries ORDER BY created_at DESC LIMIT $1', [limit]);
+  return normalizeEntries(result.rows);
+}
+
+function selectAgentTool(message) {
+  const query = message.toLowerCase();
+  if (/mood|feel|emotion|emotional/.test(query)) return 'analyze_mood';
+  if (/pattern|trend|recurring|habit/.test(query)) return 'find_patterns';
+  if (/insight|advice|suggest|recommend/.test(query)) return 'generate_insights';
+  if (/goal|progress|track/.test(query)) return 'track_goals';
+  return 'search_entries';
+}
+
+function entriesText(entries) {
+  return entries.map((entry) => `[${entry.createdAt || 'Unknown date'}] ${entry.title}\n${entry.content}`).join('\n---\n');
+}
+
+// Ollama service helper functions
+const ollamaService = {
+  baseURL: OLLAMA_API_URL,
+  model: process.env.OLLAMA_MODEL || 'mistral',
+  
+  async isAvailable() {
+    try {
+      await httpRequest('GET', `${this.baseURL}/tags`);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+  
+  async generateResponse(prompt, context = '', temperature = 0.7) {
+    try {
+      if (!await this.isAvailable()) {
+        throw new Error('Ollama service not running');
+      }
+      
+      const fullPrompt = context ? `${context}\n\n${prompt}` : prompt;
+      
+      const response = await httpRequest('POST', `${this.baseURL}/generate`, {
+        model: this.model,
+        prompt: fullPrompt,
+        stream: false,
+        temperature,
+        top_p: 0.9,
+        num_predict: 500
+      }, 60000);
+      
+      return response.data.response.trim();
+    } catch (error) {
+      throw new Error(`Failed to generate response: ${error.message}`);
+    }
+  }
+};
+
+// In-memory vector store and embeddings
+const vectorStore = new Map();
+const embeddingService = {
+  getDim: () => 384,
+  
+  hashToEmbedding(text) {
+    const hash = crypto.createHash('sha256').update(text).digest();
+    const embedding = new Array(384).fill(0);
+    
+    for (let i = 0; i < 384; i++) {
+      const byteIndex = i % hash.length;
+      const value = hash[byteIndex] / 256;
+      embedding[i] = value * 2 - 1;
+    }
+    
+    return embedding;
+  },
+  
+  similarity(emb1, emb2) {
+    let dotProduct = 0, norm1 = 0, norm2 = 0;
+    
+    for (let i = 0; i < emb1.length; i++) {
+      dotProduct += emb1[i] * emb2[i];
+      norm1 += emb1[i] * emb1[i];
+      norm2 += emb2[i] * emb2[i];
+    }
+    
+    if (norm1 === 0 || norm2 === 0) return 0;
+    return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
+  }
+};
+
+function indexEntryForSearch(entry) {
+  vectorStore.set(entry.id, {
+    content: entry.content,
+    embedding: embeddingService.hashToEmbedding(entry.content),
+    metadata: { title: entry.title, date: entry.createdAt, tags: entry.tags }
+  });
+}
+
+// Semantic search endpoint
+app.post('/api/ai/search', async (req, res) => {
+  try {
+    const { query, k = 5 } = req.body;
+    
+    if (!query) {
+      return res.status(400).json({ error: 'Query is required' });
+    }
+    
+    const queryEmb = embeddingService.hashToEmbedding(query);
+    const results = [];
+    
+    for (const [entryId, entry] of vectorStore.entries()) {
+      const similarity = embeddingService.similarity(queryEmb, entry.embedding);
+      results.push({
+        entryId,
+        content: entry.content,
+        similarity,
+        date: entry.metadata?.date,
+        title: entry.metadata?.title
+      });
+    }
+    
+    const topResults = results
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, k);
+    
+    res.json({
+      query,
+      results: topResults,
+      count: topResults.length
+    });
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// RAG query with context
+app.post('/api/ai/query', async (req, res) => {
+  try {
+    const { query, k = 3 } = req.body;
+    
+    if (!query) {
+      return res.status(400).json({ error: 'Query is required' });
+    }
+    
+    // Search for relevant context
+    const queryEmb = embeddingService.hashToEmbedding(query);
+    const results = [];
+    
+    for (const [entryId, entry] of vectorStore.entries()) {
+      const similarity = embeddingService.similarity(queryEmb, entry.embedding);
+      results.push({
+        entryId,
+        text: entry.content,
+        similarity,
+        date: entry.metadata?.date,
+        title: entry.metadata?.title
+      });
+    }
+    
+    const context = results
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, k);
+    
+    // Build prompt with context
+    const contextText = context
+      .map(c => `[${c.date || 'Date unknown'}] ${c.title || 'Entry'}\n${c.text}`)
+      .join('\n\n---\n\n');
+    
+    const systemPrompt = `You are a thoughtful and empathetic journal AI coach.
+Your role is to help users reflect on their journal entries and provide personalized insights.
+Be warm, supportive, and help them discover patterns and growth opportunities.
+Reference specific details from their past entries when relevant.`;
+    
+    const finalPrompt = context.length > 0
+      ? `Based on these past journal entries:\n\n${contextText}\n\n---\n\nUser question: ${query}\n\nProvide a helpful, empathetic, and personalized response.`
+      : `User question: ${query}\n\nRespond as a supportive journal coach.`;
+    
+    const answer = await ollamaService.generateResponse(finalPrompt, systemPrompt);
+    
+    res.json({
+      query,
+      answer,
+      sources: context.slice(0, 3),
+      hasContext: context.length > 0
+    });
+  } catch (error) {
+    console.error('RAG query error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// AI Chat endpoint
+app.post('/api/ai/chat', async (req, res) => {
+  try {
+    const { message, userId = 'default' } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+    
+    const tool = selectAgentTool(message);
+    const entries = await getRecentEntries();
+    let response;
+    let sources = [];
+
+    if (tool === 'search_entries') {
+      const ragResult = await httpRequest('POST', `http://localhost:${PORT}/api/ai/query`, { query: message, k: 3 }, 65000);
+      response = ragResult.data.answer;
+      sources = ragResult.data.sources || [];
+    } else {
+      const prompts = {
+        analyze_mood: 'Analyze the emotional tone, mood trajectory, and key emotions. Be concise and supportive.',
+        find_patterns: 'Find recurring themes, triggers, habits, and relationships between topics. Be specific and supportive.',
+        generate_insights: 'Provide strengths, growth insights, and one or two practical next steps. Be concise and supportive.',
+        track_goals: 'Identify evidence of goal progress, obstacles, and a practical next step. Be concise and supportive.'
+      };
+      response = await ollamaService.generateResponse(`${prompts[tool]}\n\nJournal entries:\n${entriesText(entries)}\n\nUser question: ${message}`);
+    }
+    
+    res.json({
+      message,
+      response,
+      userId,
+      toolsUsed: [tool],
+      sources
+    });
+  } catch (error) {
+    console.error('Chat error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Index entries for RAG
+app.post('/api/ai/index', async (req, res) => {
+  try {
+    const { entries } = req.body;
+    
+    if (!entries || !Array.isArray(entries)) {
+      return res.status(400).json({ error: 'Entries array is required' });
+    }
+    
+    let indexed = 0;
+    for (const entry of entries) {
+      const embedding = embeddingService.hashToEmbedding(entry.content);
+      vectorStore.set(entry.id, {
+        content: entry.content,
+        embedding,
+        metadata: {
+          title: entry.title,
+          date: entry.createdAt,
+          tags: entry.tags
+        }
+      });
+      indexed++;
+    }
+    
+    res.json({
+      indexed,
+      total: entries.length,
+      stats: {
+        totalEntries: vectorStore.size,
+        embeddingDimension: embeddingService.getDim()
+      }
+    });
+  } catch (error) {
+    console.error('Index error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Analyze mood
+app.post('/api/ai/analyze/mood', async (req, res) => {
+  try {
+    const { entries } = req.body;
+    
+    if (!entries) {
+      return res.status(400).json({ error: 'Entries are required' });
+    }
+    
+    const entryTexts = Array.isArray(entries)
+      ? entries.map(e => e.content || e).join('\n---\n')
+      : entries;
+    
+    const cacheKey = `memoir:mood:${crypto.createHash('sha256').update(entryTexts).digest('hex')}`;
+    const cached = await getCachedJson(cacheKey);
+    if (cached) return res.json({ ...cached, cached: true });
+    const prompt = `Analyze the emotional tone and mood in these journal entries:\n\n${entryTexts}\n\nProvide a brief analysis including overall emotional state, key emotions, mood trajectory, and patterns.`;
+    const analysis = await ollamaService.generateResponse(prompt);
+    const payload = {
+      analysis,
+      toolName: 'analyze_mood'
+    };
+    await setCachedJson(cacheKey, payload);
+    res.json(payload);
+  } catch (error) {
+    console.error('Mood analysis error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Find patterns
+app.post('/api/ai/analyze/patterns', async (req, res) => {
+  try {
+    const { entries } = req.body;
+    
+    if (!entries) {
+      return res.status(400).json({ error: 'Entries are required' });
+    }
+    
+    const entryTexts = Array.isArray(entries)
+      ? entries.map(e => e.content || e).join('\n---\n')
+      : entries;
+    
+    const cacheKey = `memoir:patterns:${crypto.createHash('sha256').update(entryTexts).digest('hex')}`;
+    const cached = await getCachedJson(cacheKey);
+    if (cached) return res.json({ ...cached, cached: true });
+    const prompt = `Analyze these journal entries for patterns and recurring themes:\n\n${entryTexts}\n\nIdentify recurring themes, behavior patterns, emotional triggers, and relationships between topics.`;
+    const patterns = await ollamaService.generateResponse(prompt);
+    const payload = {
+      patterns,
+      toolName: 'find_patterns'
+    };
+    await setCachedJson(cacheKey, payload);
+    res.json(payload);
+  } catch (error) {
+    console.error('Pattern finding error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Generate insights
+app.post('/api/ai/analyze/insights', async (req, res) => {
+  try {
+    const { entries } = req.body;
+    
+    if (!entries) {
+      return res.status(400).json({ error: 'Entries are required' });
+    }
+    
+    const entryTexts = Array.isArray(entries)
+      ? entries.map(e => e.content || e).join('\n---\n')
+      : entries;
+    
+    const prompt = `Based on these journal entries, generate personalized insights:\n\n${entryTexts}\n\nProvide key insights about this person's life, growth areas, actionable recommendations, and positive patterns to celebrate.`;
+    
+    const insights = await ollamaService.generateResponse(prompt);
+    
+    res.json({
+      insights,
+      toolName: 'generate_insights'
+    });
+  } catch (error) {
+    console.error('Insight generation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/ai/moods', async (req, res) => {
+  try {
+    const { entryId, mood, score, emotions = [] } = req.body;
+    if (!entryId || !mood || !Number.isInteger(score) || score < 1 || score > 5) {
+      return res.status(400).json({ error: 'entryId, mood, and a score from 1 to 5 are required' });
+    }
+    const result = await pool.query(
+      `INSERT INTO mood_records (id, entry_id, mood, score, emotions)
+       VALUES ($1, $2, $3, $4, $5::jsonb)
+       ON CONFLICT (entry_id) DO UPDATE SET mood = EXCLUDED.mood, score = EXCLUDED.score, emotions = EXCLUDED.emotions, created_at = NOW()
+       RETURNING *`,
+      [uuidv4(), entryId, mood.trim(), score, JSON.stringify(Array.isArray(emotions) ? emotions : [])]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch {
+    res.status(500).json({ error: 'Failed to save mood record' });
+  }
+});
+
+app.get('/api/ai/moods', async (req, res) => {
+  try {
+    const days = Math.min(365, Math.max(1, Number.parseInt(req.query.days, 10) || 30));
+    const result = await pool.query(
+      `SELECT mood, score, emotions, created_at FROM mood_records
+       WHERE created_at >= NOW() - ($1 * INTERVAL '1 day') ORDER BY created_at ASC`,
+      [days]
+    );
+    const averageScore = result.rows.length ? result.rows.reduce((total, row) => total + row.score, 0) / result.rows.length : null;
+    res.json({ records: result.rows, averageScore, days });
+  } catch {
+    res.status(500).json({ error: 'Failed to load mood history' });
+  }
+});
+
+app.post('/api/ai/daily-summary', async (req, res) => {
+  try {
+    const summaryDate = req.body.date || new Date().toISOString().slice(0, 10);
+    const cacheKey = `memoir:daily-summary:${summaryDate}`;
+    const cached = await getCachedJson(cacheKey);
+    if (cached) return res.json({ ...cached, cached: true });
+    const entriesResult = await pool.query('SELECT * FROM entries WHERE created_at::date = $1::date ORDER BY created_at ASC', [summaryDate]);
+    const entries = normalizeEntries(entriesResult.rows);
+    const summary = entries.length
+      ? await ollamaService.generateResponse(`Write a concise, supportive daily journal summary with key events, emotional tone, and one reflection point.\n\n${entriesText(entries)}`)
+      : 'No journal entries were recorded for this day.';
+    const result = await pool.query(
+      `INSERT INTO daily_summaries (summary_date, summary, entry_count) VALUES ($1::date, $2, $3)
+       ON CONFLICT (summary_date) DO UPDATE SET summary = EXCLUDED.summary, entry_count = EXCLUDED.entry_count, generated_at = NOW() RETURNING *`,
+      [summaryDate, summary, entries.length]
+    );
+    await setCachedJson(cacheKey, result.rows[0], 86400);
+    res.json(result.rows[0]);
+  } catch {
+    res.status(500).json({ error: 'Failed to generate daily summary' });
+  }
+});
+
+app.get('/api/ai/daily-summary/:date', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM daily_summaries WHERE summary_date = $1::date', [req.params.date]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'No daily summary found' });
+    res.json(result.rows[0]);
+  } catch {
+    res.status(500).json({ error: 'Failed to load daily summary' });
+  }
+});
+
+app.post('/api/ai/weekly-summary', async (req, res) => {
+  try {
+    const endDate = req.body.endDate || new Date().toISOString().slice(0, 10);
+    const cacheKey = `memoir:weekly-summary:${endDate}`;
+    const cached = await getCachedJson(cacheKey);
+    if (cached) return res.json({ ...cached, cached: true });
+
+    const entriesResult = await pool.query(
+      `SELECT * FROM entries WHERE created_at >= ($1::date - INTERVAL '6 days') AND created_at < ($1::date + INTERVAL '1 day') ORDER BY created_at ASC`,
+      [endDate]
+    );
+    const weekEntries = normalizeEntries(entriesResult.rows);
+    const summary = weekEntries.length
+      ? await ollamaService.generateResponse(`Write a warm, encouraging weekly recap covering key events, mood shifts, and one thing to carry into next week.\n\n${entriesText(weekEntries)}`)
+      : 'No journal entries were recorded this week.';
+    const payload = { weekEnding: endDate, summary, entryCount: weekEntries.length, generatedAt: new Date().toISOString() };
+    await setCachedJson(cacheKey, payload, 604800);
+    res.json(payload);
+  } catch {
+    res.status(500).json({ error: 'Failed to generate weekly summary' });
+  }
+});
+
+app.get('/api/stats/streak', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT DISTINCT created_at::date AS entry_date FROM entries ORDER BY entry_date DESC`
+    );
+    const dates = result.rows.map((row) => row.entry_date.toISOString().slice(0, 10));
+    const dateSet = new Set(dates);
+
+    const toKey = (date) => date.toISOString().slice(0, 10);
+    let currentStreak = 0;
+    let cursor = new Date();
+    if (!dateSet.has(toKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+    while (dateSet.has(toKey(cursor))) {
+      currentStreak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    let longestStreak = 0;
+    let running = 0;
+    let prevDate = null;
+    for (let i = dates.length - 1; i >= 0; i--) {
+      const date = new Date(dates[i]);
+      running = prevDate && Math.round((date - prevDate) / 86400000) === 1 ? running + 1 : 1;
+      longestStreak = Math.max(longestStreak, running);
+      prevDate = date;
+    }
+
+    res.json({ currentStreak, longestStreak, totalEntries: dates.length });
+  } catch {
+    res.status(500).json({ error: 'Failed to compute streak' });
+  }
+});
+
+// AI stats
+app.get('/api/ai/stats', (req, res) => {
+  try {
+    res.json({
+      vectorStore: {
+        totalEntries: vectorStore.size,
+        embeddingDimension: embeddingService.getDim()
+      },
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Clear index
+app.delete('/api/ai/clear-index', (req, res) => {
+  try {
+    vectorStore.clear();
+    res.json({
+      message: 'Index cleared successfully',
+      stats: {
+        totalEntries: vectorStore.size,
+        embeddingDimension: embeddingService.getDim()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== END AI ENDPOINTS =====
 
 if (fs.existsSync(DIST_DIR)) {
   app.use(express.static(DIST_DIR));
@@ -1302,9 +2079,12 @@ if (fs.existsSync(DIST_DIR)) {
 
 async function startServer() {
   await initializeDatabase();
+  const existing = await pool.query('SELECT * FROM entries');
+  existing.rows.forEach((row) => indexEntryForSearch(mapEntryRow(row)));
+  console.log(`Indexed ${existing.rows.length} existing entries for semantic search`);
   app.listen(PORT, () => {
-    console.log(`LifeLog API server running on http://localhost:${PORT}`);
-    console.log(`PostgreSQL database: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'lifelog'}`);
+    console.log(`Memoir API server running on http://localhost:${PORT}`);
+    console.log(`PostgreSQL database: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'memoir'}`);
   });
 }
 

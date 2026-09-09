@@ -1,0 +1,135 @@
+.memoir-avatar {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--avatar-backdrop, #e0e7ff);
+}
+
+.memoir-avatar-small {
+  width: 28px;
+  height: 28px;
+  font-size: 1rem;
+}
+
+.memoir-avatar-large {
+  width: 88px;
+  height: 88px;
+  font-size: 2rem;
+}
+
+.memoir-avatar-empty {
+  display: grid;
+  place-items: center;
+  background: #eef2ff;
+}
+
+.memoir-avatar-built {
+  isolation: isolate;
+}
+
+.memoir-avatar-face {
+  position: absolute;
+  z-index: 2;
+  top: 24%;
+  left: 26%;
+  width: 48%;
+  height: 48%;
+  border-radius: 48% 48% 45% 45%;
+  background: var(--avatar-skin);
+}
+
+.memoir-avatar-hair {
+  position: absolute;
+  z-index: 1;
+  top: 10%;
+  left: 20%;
+  width: 60%;
+  height: 56%;
+  border-radius: 50% 50% 36% 36%;
+  background: var(--avatar-hair);
+}
+
+.memoir-avatar-hair-long {
+  top: 10%;
+  left: 16%;
+  width: 68%;
+  height: 70%;
+  border-radius: 48% 48% 32% 32%;
+}
+
+.memoir-avatar-hair-tied::after {
+  position: absolute;
+  top: 5%;
+  right: -22%;
+  width: 40%;
+  height: 45%;
+  border-radius: 50%;
+  background: var(--avatar-hair);
+  content: '';
+}
+
+.memoir-avatar-hair-curls {
+  top: 8%;
+  left: 15%;
+  width: 70%;
+  height: 58%;
+  border-radius: 48% 48% 42% 42%;
+  box-shadow: -7px 7px 0 -2px var(--avatar-hair), 7px 8px 0 -2px var(--avatar-hair);
+}
+
+.memoir-avatar-eyes {
+  position: absolute;
+  z-index: 4;
+  top: 42%;
+  left: 23%;
+  width: 54%;
+  height: 14%;
+}
+
+.memoir-avatar-eyes::before,
+.memoir-avatar-eyes::after {
+  position: absolute;
+  top: 0;
+  width: 21%;
+  height: 100%;
+  border-radius: 50%;
+  background: #25314d;
+  content: '';
+}
+
+.memoir-avatar-eyes::before { left: 6%; }
+.memoir-avatar-eyes::after { right: 6%; }
+.memoir-avatar-eyes-happy::before,
+.memoir-avatar-eyes-happy::after {
+  height: 55%;
+  border: 2px solid #25314d;
+  border-width: 2px 2px 0;
+  background: transparent;
+}
+
+.memoir-avatar-eyes-sparkle::before,
+.memoir-avatar-eyes-sparkle::after { background: #4f46e5; }
+
+.memoir-avatar-smile {
+  position: absolute;
+  z-index: 4;
+  top: 67%;
+  left: 37%;
+  width: 26%;
+  height: 11%;
+  border-bottom: 2px solid #a54d57;
+  border-radius: 0 0 50% 50%;
+}
+
+.memoir-avatar-outfit {
+  position: absolute;
+  z-index: 1;
+  right: 10%;
+  bottom: -12%;
+  left: 10%;
+  height: 44%;
+  border-radius: 50% 50% 0 0;
+  background: var(--avatar-outfit);
+}

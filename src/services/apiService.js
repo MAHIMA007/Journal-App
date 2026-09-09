@@ -152,6 +152,54 @@ class ApiService {
       return null;
     }
   }
+
+  // Current/longest journaling streak
+  async getStreak() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/stats/streak`);
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Error fetching streak:', error);
+      return null;
+    }
+  }
+
+  // Entries written on this same month/day in previous years
+  async getOnThisDay() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/entries/on-this-day`);
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Error fetching on-this-day entries:', error);
+      return [];
+    }
+  }
+
+  // Mood history for the trend sparkline
+  async getMoodHistory(days = 30) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ai/moods?days=${encodeURIComponent(days)}`);
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Error fetching mood history:', error);
+      return null;
+    }
+  }
+
+  // AI-generated recap of the last 7 days
+  async getWeeklySummary(endDate) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ai/weekly-summary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endDate }),
+      });
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Error generating weekly summary:', error);
+      throw error;
+    }
+  }
 }
 
 export default new ApiService();
