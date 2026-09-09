@@ -1,0 +1,441 @@
+.habit-tracker {
+  min-height: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.habit-tracker-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.habit-tracker-header .section-card-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #6366f1;
+  letter-spacing: 0.06em;
+}
+
+.habit-tracker h3 {
+  color: #1f2937;
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.habit-week-streak {
+  display: inline-block;
+  margin-top: 0.4rem;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(217, 119, 6, 0.25);
+}
+
+.habit-progress-value {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+
+.habit-progress-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.habit-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.3s ease;
+}
+
+.habit-progress-copy {
+  margin: 0.5rem 0 1rem;
+  color: #6b7280;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.habit-view-switcher {
+  display: inline-flex;
+  gap: 0.15rem;
+  margin-top: 0.6rem;
+  padding: 0.2rem;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.habit-view-switcher button {
+  padding: 0.35rem 0.7rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 700;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.habit-view-switcher button.is-active {
+  background: white;
+  color: #4f46e5;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.18);
+}
+
+.habit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.habit-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 22px;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  border-radius: 14px;
+  background: rgba(99, 102, 241, 0.03);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.habit-row:hover {
+  background: rgba(99, 102, 241, 0.07);
+  transform: translateY(-1px);
+}
+
+.habit-check {
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(99, 102, 241, 0.35);
+  border-radius: 50%;
+  background: white;
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 700;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.habit-check:hover {
+  transform: scale(1.08);
+}
+
+.habit-check.is-complete {
+  border-color: transparent;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+}
+
+.habit-details {
+  min-width: 0;
+}
+
+.habit-name {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #1f2937;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.habit-name:focus {
+  border-bottom: 1px solid #6366f1;
+}
+
+.habit-keywords {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 0.68rem;
+  margin-top: 0.1rem;
+}
+
+.habit-keywords:focus {
+  border-bottom: 1px solid #6366f1;
+  color: #4f46e5;
+}
+
+.habit-week {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+  overflow-x: auto;
+}
+
+.habit-day {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 50%;
+  background: white;
+  color: #a5adba;
+  cursor: pointer;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.habit-day:hover {
+  transform: scale(1.12);
+}
+
+.habit-day.is-complete {
+  border-color: transparent;
+  background: linear-gradient(135deg, #818cf8, #764ba2);
+  color: white;
+  font-weight: 700;
+}
+
+.habit-day.is-today {
+  outline: 2px solid #f59e0b;
+  outline-offset: 1px;
+}
+
+.habit-day-month {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  font-size: 0.55rem;
+}
+
+.habit-target {
+  margin-left: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.habit-target input {
+  width: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #4f46e5;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.habit-remove {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: #c4c9d4;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.habit-remove:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.habit-add-button {
+  width: 100%;
+  margin-top: 0.9rem;
+  padding: 0.6rem;
+  border: 1.5px dashed rgba(99, 102, 241, 0.35);
+  border-radius: 12px;
+  background: transparent;
+  color: #4f46e5;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.habit-add-button:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.06);
+  border-color: rgba(99, 102, 241, 0.55);
+}
+
+.habit-add-button:disabled {
+  border-style: solid;
+  border-color: rgba(99, 102, 241, 0.12);
+  color: #a5adba;
+  cursor: default;
+}
+
+.habit-add-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+}
+
+.habit-add-form input {
+  min-width: 0;
+  flex: 1;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 10px;
+  color: #1f2937;
+  font-size: 0.8rem;
+}
+
+.habit-add-form button {
+  border: 0;
+  border-radius: 10px;
+  padding: 0 0.9rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.habit-add-form button:last-child {
+  background: transparent;
+  color: #6b7280;
+}
+
+.habit-focus-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(99, 102, 241, 0.12);
+}
+
+.habit-focus-section {
+  padding: 0.85rem;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.habit-focus-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.habit-focus-heading .section-card-label {
+  color: #6366f1;
+}
+
+.habit-focus-heading button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #4f46e5;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.habit-prompt {
+  margin: 0.55rem 0 0;
+  color: #374151;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.habit-prompt-answer-toggle {
+  margin-top: 0.6rem;
+  border: 1px solid #6366f1;
+  background: transparent;
+  color: #4f46e5;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.habit-prompt-answer-toggle:hover {
+  background: #6366f1;
+  color: #fff;
+}
+
+.habit-prompt-answer {
+  margin-top: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.habit-prompt-answer textarea {
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #1f2937;
+  resize: vertical;
+}
+
+.habit-prompt-answer textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+}
+
+.habit-prompt-answer button {
+  align-self: flex-end;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #4338ca;
+  border-radius: 10px;
+  padding: 0.5rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.habit-prompt-answer button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.habit-prompt-error {
+  color: #b91c1c;
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+@media (max-width: 420px) {
+  .habit-day {
+    width: 20px;
+    height: 20px;
+  }
+}

@@ -1,8 +1,8 @@
 <!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
 
-# LifeLog - Online Journal System
+# Memoir - Online Journal System
 
-This is a React-based online journal application called "LifeLog". The application allows users to:
+This is a React-based online journal application called "Memoir". The application allows users to:
 
 - Create, edit, and delete journal entries
 - Search and filter entries by content, date, or tags

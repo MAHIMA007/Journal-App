@@ -1,0 +1,245 @@
+.settings-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.settings-header {
+  position: relative;
+  text-align: center;
+}
+
+.settings-header h2 {
+  font-size: 1.75rem;
+  color: white;
+  margin-bottom: 0.35rem;
+}
+
+.settings-header p {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.settings-saved-badge {
+  display: inline-block;
+  margin-top: 0.75rem;
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.settings-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.settings-card h3 {
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+}
+
+.settings-card-hint {
+  color: #718096;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.settings-bg-preview {
+  width: 100%;
+  height: 140px;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.settings-bg-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.profile-picture-preview {
+  width: 88px;
+  height: 88px;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+}
+
+.avatar-builder {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.avatar-builder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #4a5568;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.avatar-builder-row > div {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.avatar-swatch {
+  width: 26px;
+  height: 26px;
+  border: 2px solid white;
+  border-radius: 50%;
+  outline: 1px solid #cbd5e1;
+  background: var(--swatch);
+  cursor: pointer;
+}
+
+.avatar-swatch:hover,
+.avatar-swatch:focus-visible {
+  outline: 2px solid #4f46e5;
+}
+
+.avatar-text-options button {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: white;
+  padding: 0.3rem 0.5rem;
+  color: #475569;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.avatar-text-options button.selected {
+  border-color: #6366f1;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.settings-upload-btn,
+.settings-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.settings-upload-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.settings-upload-btn:hover {
+  transform: translateY(-1px);
+}
+
+.settings-remove-btn {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.settings-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.18);
+}
+
+.settings-error {
+  margin-top: 0.75rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #dc2626;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.settings-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.settings-form-row label {
+  font-weight: 600;
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+.settings-form-row input {
+  flex: 1;
+  max-width: 180px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.settings-goal-form {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.settings-goal-form input {
+  flex: 1;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.settings-goal-form button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-goal-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settings-goal-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(102, 126, 234, 0.08);
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #2d3748;
+}
+
+.settings-goal-list li button {
+  background: none;
+  border: none;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 0.9rem;
+}

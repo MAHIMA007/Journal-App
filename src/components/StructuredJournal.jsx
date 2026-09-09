@@ -116,15 +116,10 @@ function StructuredJournal({ onCreateEntry, onUploadEntries }) {
   const handleSaveDraft = async (event) => {
     event.preventDefault()
 
-    const title = draftTitle.trim()
+    const title = draftTitle.trim() || (focusArea.trim() ? `Structured: ${focusArea.trim()}` : 'Untitled Structured Entry')
     const content = buildStructuredContent()
     const hasPromptResponses = promptAnswers.some((answer) => String(answer || '').trim().length > 0)
     const hasTypedNotes = additionalNotes.trim().length > 0
-
-    if (!title) {
-      setError('Title is required to save.')
-      return
-    }
 
     if (!hasPromptResponses && !hasTypedNotes) {
       setError('Add at least one answer or some notes before saving.')
@@ -236,7 +231,7 @@ function StructuredJournal({ onCreateEntry, onUploadEntries }) {
             type="text"
             value={draftTitle}
             onChange={(event) => setDraftTitle(event.target.value)}
-            placeholder="Structured reflection title"
+            placeholder="Structured reflection title (optional)"
           />
 
           <label htmlFor="structuredTags">Tags</label>
