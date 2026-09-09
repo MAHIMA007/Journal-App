@@ -41,6 +41,7 @@ services:
   app:
     image: memoir:latest
     container_name: memoir-app
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy

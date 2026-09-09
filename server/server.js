@@ -2077,8 +2077,21 @@ if (fs.existsSync(DIST_DIR)) {
   });
 }
 
+async function initializeDatabaseWithRetry(maxAttempts = 10, delayMs = 2000) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await initializeDatabase();
+      return;
+    } catch (error) {
+      if (attempt === maxAttempts) throw error;
+      console.warn(`Database not ready (attempt ${attempt}/${maxAttempts}): ${error.message}. Retrying in ${delayMs}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 async function startServer() {
-  await initializeDatabase();
+  await initializeDatabaseWithRetry();
   const existing = await pool.query('SELECT * FROM entries');
   existing.rows.forEach((row) => indexEntryForSearch(mapEntryRow(row)));
   console.log(`Indexed ${existing.rows.length} existing entries for semantic search`);
@@ -2088,4 +2101,7 @@ async function startServer() {
   });
 }
 
-startServer().catch(console.error);
+startServer().catch((error) => {
+  console.error('Fatal error starting server:', error);
+  process.exit(1);
+});
